@@ -1,80 +1,80 @@
 # Server Sent Events
 
-The [Server-Sent Events](https://html.spec.whatwg.org/multipage/comms.html#the-eventsource-interface) specification describes a built-in class `EventSource`, that keeps connection with the server and allows to receive events from it.
+Специфікація [Server-Sent Events](https://html.spec.whatwg.org/multipage/comms.html#the-eventsource-interface) визначає вбудований клас `EventSource`, який підтримує з’єднання з сервером і дозволяє отримувати від нього події.
 
-Similar to `WebSocket`, the connection is persistent.
+Подібно до `WebSocket`, з’єднання є постійним.
 
-But there are several important differences:
+Але є кілька важливих відмінностей:
 
 | `WebSocket` | `EventSource` |
 |-------------|---------------|
-| Bi-directional: both client and server can exchange messages | One-directional: only server sends data |
-| Binary and text data | Only text |
-| WebSocket protocol | Regular HTTP |
+| Двонаправленність: клієнт і сервер можуть обмінюватися повідомленнями | Односпрямованність: дані надсилає лише сервер |
+| Двійкові та текстові дані | Тільки текст |
+| WebSocket протокол | Звичайний HTTP |
 
-`EventSource` is a less-powerful way of communicating with the server than `WebSocket`.
+`EventSource` - це менш потужний спосіб зв’язку з сервером, ніж `WebSocket`.
 
-Why should one ever use it?
+Чому іноді потрібно його використовувати?
 
-The main reason: it's simpler. In many applications, the power of `WebSocket` is a little bit too much.
+Основна причина: він простіший. Для багатьох випадків потужність `WebSocket` є дещо занадто великою.
 
-We need to receive a stream of data from server: maybe chat messages or market prices, or whatever. That's what `EventSource` is good at. Also it supports auto-reconnect, something  we need to implement manually with `WebSocket`. Besides, it's a plain old HTTP, not a new protocol.
+Нам потрібно отримати потік даних із сервера: можливо, повідомлення в чаті чи ринкові ціни, чи що завгодно. `EventSource` добре це може. Також він підтримує автоматичне перепідключення, що у випадку `WebSocket` потрібно реалізовувати вручну. До того ж, це звичайний старий, а не новий  HTTP протокол.
 
-## Getting messages
+## Отримання повідомлень
 
-To start receiving messages, we just need to create `new EventSource(url)`.
+Щоб почати отримувати повідомлення, необхідно просто створити `new EventSource(url)`.
 
-The browser will connect to `url` and keep the connection open, waiting for events.
+Браузер підключиться до `url` і залишить з’єднання відкритим, чекаючи подій.
 
-The server should respond with status 200 and the header `Content-Type: text/event-stream`, then keep the connection and write messages into it in the special format, like this:
+Сервер повинен відповісти статусом 200 і заголовком `Content-Type: text/event-stream`, а потім зберегти з’єднання та записувати в нього повідомлення в спеціальному форматі, наприклад:
 
 ```
-data: Message 1
+data: Повідомлення 1
 
-data: Message 2
+data: Повідомлення 2
 
-data: Message 3
-data: of two lines
+data: Повідомлення 3
+data: з двох рядків
 ```
 
-- A message text goes after `data:`, the space after the colon is optional.
-- Messages are delimited with double line breaks `\n\n`.
-- To send a line break `\n`, we can immediately send one more `data:` (3rd message above).
+- Текст повідомлення йде після `data:`, пробіл після двокрапки необов’язковий.
+- Повідомлення розділені подвійними розривами рядків `\n\n`.
+- Щоб надіслати розрив рядка `\n`, ми можемо негайно надіслати ще одне `data:` (третє повідомлення вище).
 
-In practice, complex messages are usually sent JSON-encoded. Line-breaks are encoded as `\n` within them, so multiline `data:` messages are not necessary.
+На практиці складні повідомлення зазвичай надсилаються в кодуванні JSON. Розриви рядків кодуються як `\n` всередині них, тому багаторядкові повідомлення `data:` не потрібні.
 
-For instance:
+Наприклад:
 
 ```js
-data: {"user":"John","message":"First line*!*\n*/!* Second line"}
+data: {"user":"Тарас","message":"Перший рядок*!*\n*/!* Другий рядок"}
 ```
 
-...So we can assume that one `data:` holds exactly one message.
+...Отже, ми можемо припустити, що одне `data:` містить рівно одне повідомлення.
 
-For each such message, the `message` event is generated:
+Для кожного такого повідомлення генерується подія `message`:
 
 ```js
 let eventSource = new EventSource("/events/subscribe");
 
 eventSource.onmessage = function(event) {
-  console.log("New message", event.data);
-  // will log 3 times for the data stream above
+  console.log("Нове повідомлення", event.data);
+  // реєструватиме 3 рази для потоку даних, наведеного вище
 };
 
-// or eventSource.addEventListener('message', ...)
+// чи eventSource.addEventListener('message', ...)
 ```
 
-### Cross-origin requests
+### Запити з перехресних джерел
 
-`EventSource` supports cross-origin requests, like `fetch` and any other networking methods. We can use any URL:
+`EventSource` підтримує запити між джерелами, як-от `fetch` та будь-які інші мережеві методи. Ми можемо використовувати будь-яку URL-адресу:
 
 ```js
 let source = new EventSource("https://another-site.com/events");
 ```
 
-The remote server will get the `Origin` header and must respond with `Access-Control-Allow-Origin` to proceed.
+Віддалений сервер отримає заголовок `Origin` і повинен відповісти `Access-Control-Allow-Origin` щоб продовжити.
 
-To pass credentials, we should set the additional option `withCredentials`, like this:
+Щоб передати облікові дані, ми повинні встановити додатковий параметр `withCredentials`, наприклад:
 
 ```js
 let source = new EventSource("https://another-site.com/events", {
@@ -82,30 +82,30 @@ let source = new EventSource("https://another-site.com/events", {
 });
 ```
 
-Please see the chapter <info:fetch-crossorigin> for more details about cross-origin headers.
+Будь ласка, перегляньте розділ <info:fetch-crossorigin>, щоб дізнатися більше про заголовки з перехресними джерелами.
 
 
-## Reconnection
+## Повторне підключення
 
-Upon creation, `new EventSource` connects to the server, and if the connection is broken -- reconnects.
+Після створення `new EventSource` підключається до сервера, і якщо з’єднання розривається - автоматично підключається знову.
 
-That's very convenient, as we don't have to care about it.
+Це дуже зручно, оскільки нам не потрібно про це дбати.
 
-There's a small delay between reconnections, a few seconds by default.
+Між повторними підключеннями є невелика затримка, типово кілька секунд.
 
-The server can set the recommended delay using `retry:` in response (in milliseconds):
+Сервер може встановити рекомендовану затримку, за допомогою `retry:` у відповіді (в мілісекундах):
 
 ```js
 retry: 15000
-data: Hello, I set the reconnection delay to 15 seconds
+data: Привіт, я встановив затримку для перепідключення 15 секунд
 ```
 
-The `retry:` may come both together with some data, or as a standalone message.
+`retry:` може надсилатись як разом з деякими даними, так і окремим повідомленням
 
-The browser should wait that many milliseconds before reconnecting. Or longer, e.g. if the browser knows (from OS) that there's no network connection at the moment, it may wait until the connection appears, and then retry.
+Браузер повинен зачекати стільки мілісекунд перед повторним підключенням. Або довше, напр. якщо браузер знає (з ОС), що на даний момент немає підключення до мережі, він може зачекати, доки з’єднання з’явиться, а потім повторити спробу.
 
-- If the server wants the browser to stop reconnecting, it should respond with HTTP status 204.
-- If the browser wants to close the connection, it should call `eventSource.close()`:
+- Якщо сервер хоче, щоб браузер припинив повторне підключення, він повинен відповісти HTTP статусом 204.
+- Якщо браузер хоче закрити з’єднання, він повинен викликати `eventSource.close()`:
 
 ```js
 let eventSource = new EventSource(...);
@@ -113,10 +113,10 @@ let eventSource = new EventSource(...);
 eventSource.close();
 ```
 
-Also, there will be no reconnection if the response has an incorrect `Content-Type` or its HTTP status differs from 301, 307, 200 and 204. In such cases the `"error"` event will be emitted, and the browser won't reconnect.
+Крім того, не буде повторного підключення, якщо відповідь містить неправильний `Content-Type` або його статус HTTP відрізняється від 301, 307, 200 і 204. У таких випадках буде створено подію `"error"`, і браузер не підключатиметься знову.
 
 ```smart
-When a connection is finally closed, there's no way to "reopen" it. If we'd like to connect again, just create a new `EventSource`.
+Коли з’єднання остаточно закрите, його неможливо «відкрити». Якщо ми хочемо знову під’єднатися, доведеться створити новий `EventSource`.
 ```
 
 ## Message id
