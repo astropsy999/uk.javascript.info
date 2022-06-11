@@ -1,5 +1,5 @@
 
-CSS to animate both `width` and `height`:
+CSS для анімації `width` та `height`:
 ```css
 /* original class */
 
@@ -14,4 +14,4 @@ CSS to animate both `width` and `height`:
 }
 ```
 
-Please note that `transitionend` triggers two times -- once for every property. So if we don't perform an additional check then the message would show up 2 times.
+Зауважте, що `transitionend` запускається двічі - один раз для кожної властивості. Тому, якщо ми не виконаємо додаткову перевірку, повідомлення з’явиться двічи
